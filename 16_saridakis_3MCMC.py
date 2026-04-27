@@ -1,0 +1,537 @@
+"""
+16_saridakis_3MCMC.py
+
+Replica dell'analisi di Anagnostopoulos, Basilakos, Saridakis (2021)
+arXiv:2104.15123 "First evidence that non-metricity f(Q) gravity could
+challenge LambdaCDM" adattata al NOSTRO modello f(Q) in convenzione A:
+
+   f(Q) = Q + 2*Lambda + alpha * mu^2 * (x-1)/(1+x)^2    con  x = Q/mu^2
+
+Con eta = mu/H_0 = sqrt(6) FISSATO (x_0 = 1), abbiamo 1 parametro modello
+libero (alpha) invece dei 0 parametri modello del Saridakis (solo lambda
+di e^{lambda*Q0/Q}).
+
+3 MCMC INDIPENDENTI:
+  Caso A:  SNIa + CC            -> (alpha, Om0, H0)
+  Caso B:  SNIa + CC + BAO      -> (alpha, Om0, H0, rd)    [rd libero]
+  Caso C:  SNIa + CC + RSD      -> (alpha, Om0, H0, sigma8)
+
+Confronto con LambdaCDM in OGNI caso per calcolare Delta AIC, Delta BIC, DIC.
+
+NOTE:
+- Saridakis non usa CMB, quindi noi pure lo omettiamo in questi 3 casi
+  (nota: il nostro main 04 usa CMB, questo script NO)
+- BAO: DESI DR1 (analogue moderno del BOSS DR12 usato da Saridakis)
+- Il parametro nuisance M di Pantheon e' marginalizzato analiticamente
+  (vedi Ainv_MB, Binv_MB): stessa informazione di Saridakis,
+  implementazione diversa.
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import cumulative_trapezoid, trapezoid
+from scipy.optimize import minimize
+from time import time
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from data_loaders import (load_CC, load_BAO_DESI, load_PantheonPlus,
+                          load_fsigma8)
+
+print("="*70)
+print("  f(Q) = Q + 2Λ + α μ² (x-1)/(1+x)² ,  eta = sqrt(6)")
+print("="*70)
+
+# =====================================================================
+# Caricamento dati
+# =====================================================================
+print("\nCaricamento dati...")
+CC = load_CC()
+BAO_BLOCKS = load_BAO_DESI()
+SN_Z, SN_MB, C_SN_inv, Ainv_MB, Binv_MB = load_PantheonPlus()
+FS8 = load_fsigma8()
+FS8_Z, FS8_V, FS8_S = FS8[:, 0], FS8[:, 1], FS8[:, 2]
+
+print(f"  CC:     {len(CC)} pt")
+print(f"  BAO:    {sum(len(b['kinds']) for b in BAO_BLOCKS)} pt (DESI DR1)")
+print(f"  SN:     {len(SN_Z)} pt (Pantheon+)")
+print(f"  fsigma8:{len(FS8)} pt (Gold-18)")
+
+# =====================================================================
+# Setup modello (conv A, eta = sqrt(6) fissato)
+# =====================================================================
+C_KMS = 299792.458; OM_R = 9.2e-5  # densita radiazione (Tcmb=2.7255 K)
+GAMMA = 0.55
+ETA_FIX = np.sqrt(6.0); X0_FIX = 1.0
+X_SAMP = np.unique(np.concatenate([
+    np.linspace(1e-5, 0.3, 100),
+    np.linspace(0.3, 50, 300),
+    np.linspace(50, 15000, 80),
+]))
+Z_LOW = np.linspace(1e-5, 15.0, 300)
+
+
+def Lam_of(a, Om0):
+    """Lambda dalla chiusura oggi (conv A)."""
+    return 0.5*((1.0 - Om0)*X0_FIX + a*(1 + 6*X0_FIX - 3*X0_FIX*X0_FIX)/(1 + X0_FIX)**3)
+
+
+def solve_E(z_arr, alpha, Om0):
+    """Risolve il background f(Q) per E(z) = H(z)/H0. Include radiazione Om_r0."""
+    Lam = Lam_of(alpha, Om0)
+    # NB: chiusura oggi (z=0) modificata per Ω_r0:
+    # x_0 - R(x_0) = (Om_m + Om_r) x_0  =>  Λ riassorbe il piccolo termine
+    # Ma OM_R<<Om_m, qui accomodo direttamente nella closure dinamica
+    R_s = 2*Lam - alpha*(1 + 6*X_SAMP - 3*X_SAMP**2)/(1 + X_SAMP)**3
+    g_s = X_SAMP - R_s
+    if not np.all(np.diff(g_s) > 0):
+        return None
+    z = np.asarray(z_arr, float)
+    tgt = X0_FIX*(Om0*(1 + z)**3 + OM_R*(1 + z)**4)
+    xs = np.interp(tgt, g_s, X_SAMP)
+    return np.sqrt(xs/X0_FIX)
+
+
+def solve_E_LCDM(z_arr, Om0):
+    """Background LCDM con radiazione: E(z) = sqrt(Om0*(1+z)^3 + Or*(1+z)^4 + (1-Om0-Or))."""
+    z = np.asarray(z_arr, float)
+    return np.sqrt(Om0*(1 + z)**3 + OM_R*(1 + z)**4 + (1 - Om0 - OM_R))
+
+
+# =====================================================================
+# Chi^2 parziali
+# =====================================================================
+def chi2_CC(E_lo, H0):
+    Ecc = np.interp(CC[:, 0], Z_LOW, E_lo)
+    return np.sum(((CC[:, 1] - H0*Ecc)/CC[:, 2])**2)
+
+
+def chi2_BAO(E_lo, H0, rd):
+    """BAO con rd libero (non derivato da omega_b via Aubourg)."""
+    cum = np.concatenate(([0.0], cumulative_trapezoid(1/E_lo, Z_LOW)))
+    fac = C_KMS/H0/rd
+    c2 = 0.0
+    for bl in BAO_BLOCKS:
+        z = bl['z']
+        Eh = np.interp(z, Z_LOW, E_lo)
+        DM = fac*np.interp(z, Z_LOW, cum)
+        DH = fac/Eh
+        DV = (z*DM*DM*DH)**(1/3)
+        mods = np.array([{'DM': DM, 'DH': DH, 'DV': DV}[k] for k in bl['kinds']])
+        dv = bl['vals'] - mods
+        c2 += dv @ bl['icov'] @ dv
+    return c2
+
+
+def chi2_SN(E_lo, H0):
+    """Pantheon+ con M marginalizzato analiticamente (formula standard)."""
+    cum = np.concatenate(([0.0], cumulative_trapezoid(1/E_lo, Z_LOW)))
+    DMsn = (C_KMS/H0)*np.interp(SN_Z, Z_LOW, cum)
+    mu_th = 5*np.log10((1 + SN_Z)*DMsn) + 25
+    r = SN_MB - mu_th
+    return r @ C_SN_inv @ r - (r @ Binv_MB)**2/Ainv_MB
+
+
+def chi2_fsigma8(E_lo, Om0, s8):
+    """RSD f*sigma8 con growth index gamma = 0.55."""
+    Om_z = Om0*(1 + Z_LOW)**3/E_lo**2
+    # In conv A: G_eff/G_N = 1/f_Q (invariante in E_lo calcolato, ma modifica il growth)
+    # Per semplicita' (e analogia con Saridakis) usiamo la stessa approssimazione
+    # growth-index: le correzioni di G_eff sono assorbite nella dipendenza di Om_z
+    f_z = Om_z**GAMMA
+    cf = np.concatenate(([0.0], cumulative_trapezoid(f_z/(1 + Z_LOW), Z_LOW)))
+    fs8_full = s8*f_z*np.exp(-cf)
+    fs8_mod = np.interp(FS8_Z, Z_LOW, fs8_full)
+    return np.sum(((FS8_V - fs8_mod)/FS8_S)**2)
+
+
+# =====================================================================
+# Chi^2 totali per ciascun caso e modello
+# =====================================================================
+# --- CASO A: SNIa + CC ---
+def chi2_A_fQ(theta):
+    a, Om, H0 = theta
+    if not (-1 < a < 1 and 0.1 < Om < 0.5 and 55 < H0 < 85): return 1e10
+    E_lo = solve_E(Z_LOW, a, Om)
+    if E_lo is None: return 1e10
+    return chi2_SN(E_lo, H0) + chi2_CC(E_lo, H0)
+
+
+def chi2_A_LCDM(theta):
+    Om, H0 = theta
+    if not (0.1 < Om < 0.5 and 55 < H0 < 85): return 1e10
+    E_lo = solve_E_LCDM(Z_LOW, Om)
+    return chi2_SN(E_lo, H0) + chi2_CC(E_lo, H0)
+
+
+# --- CASO B: SNIa + CC + BAO (rd libero) ---
+def chi2_B_fQ(theta):
+    a, Om, H0, rd = theta
+    if not (-1 < a < 1 and 0.1 < Om < 0.5 and 55 < H0 < 85 and 100 < rd < 200): return 1e10
+    E_lo = solve_E(Z_LOW, a, Om)
+    if E_lo is None: return 1e10
+    return chi2_SN(E_lo, H0) + chi2_CC(E_lo, H0) + chi2_BAO(E_lo, H0, rd)
+
+
+def chi2_B_LCDM(theta):
+    Om, H0, rd = theta
+    if not (0.1 < Om < 0.5 and 55 < H0 < 85 and 100 < rd < 200): return 1e10
+    E_lo = solve_E_LCDM(Z_LOW, Om)
+    return chi2_SN(E_lo, H0) + chi2_CC(E_lo, H0) + chi2_BAO(E_lo, H0, rd)
+
+
+# --- CASO C: SNIa + CC + RSD (sigma8 libero) ---
+def chi2_C_fQ(theta):
+    a, Om, H0, s8 = theta
+    if not (-1 < a < 1 and 0.1 < Om < 0.5 and 55 < H0 < 85 and 0.5 < s8 < 1.1): return 1e10
+    E_lo = solve_E(Z_LOW, a, Om)
+    if E_lo is None: return 1e10
+    return chi2_SN(E_lo, H0) + chi2_CC(E_lo, H0) + chi2_fsigma8(E_lo, Om, s8)
+
+
+def chi2_C_LCDM(theta):
+    Om, H0, s8 = theta
+    if not (0.1 < Om < 0.5 and 55 < H0 < 85 and 0.5 < s8 < 1.1): return 1e10
+    E_lo = solve_E_LCDM(Z_LOW, Om)
+    return chi2_SN(E_lo, H0) + chi2_CC(E_lo, H0) + chi2_fsigma8(E_lo, Om, s8)
+
+
+# =====================================================================
+# MCMC MH adattivo (semplificato rispetto a 04)
+# =====================================================================
+def mcmc_adaptive(chi2_fn, start, prior_ranges, n_steps=1500, n_burn=500,
+                  n_chains=4, seed=42):
+    """MH adattivo. Ritorna flat chain e chi2 min."""
+    rng = np.random.default_rng(seed)
+    ndim = len(start)
+
+    # Covarianza adattiva iniziale: diagonale scalata
+    cov = np.diag(np.array([(r[1] - r[0])/10 for r in prior_ranges])**2)
+
+    flats = []
+    chi2_min = np.inf
+    best_theta = None
+
+    for ch in range(n_chains):
+        p = np.array(start, float) + rng.normal(scale=np.sqrt(np.diag(cov)), size=ndim)
+        cur_chi2 = chi2_fn(p)
+        local_cov = cov.copy()
+        samples = np.zeros((n_steps + n_burn, ndim))
+        chi2s = np.zeros(n_steps + n_burn)
+        acc = 0
+        scale = 2.4**2/ndim
+
+        for i in range(n_steps + n_burn):
+            step = rng.multivariate_normal(np.zeros(ndim), local_cov*scale)
+            q = p + step
+            q_chi2 = chi2_fn(q)
+            if q_chi2 < cur_chi2 or rng.random() < np.exp(-0.5*(q_chi2 - cur_chi2)):
+                p = q; cur_chi2 = q_chi2
+                acc += 1
+            samples[i] = p
+            chi2s[i] = cur_chi2
+
+            # Adattamento ogni 100 step durante burn-in
+            if i > 0 and i < n_burn and i % 100 == 0:
+                ar = acc/(i + 1)
+                if ar > 0.35: scale *= 1.15
+                elif ar < 0.20: scale *= 0.9
+                if i > 300:
+                    local_cov = np.cov(samples[:i+1].T) + 1e-12*np.eye(ndim)
+
+            if cur_chi2 < chi2_min:
+                chi2_min = cur_chi2
+                best_theta = p.copy()
+
+        flats.append(samples[n_burn:])
+
+    flat = np.concatenate(flats, axis=0)
+    return flat, chi2_min, best_theta
+
+
+def info_criteria(flat, chi2_min, N_data, k):
+    """AIC, BIC, DIC dati chain piatta e chi2_min."""
+    n = len(flat)
+    # DIC richiede chi2 di ciascuna riga -> lo calcolo in-place
+    # D_bar = <chi2>, D(theta_bar) = chi2(theta_bar)
+    # DIC = D_bar + 2*p_D = 2*D_bar - D(theta_bar)
+    # Per evitare di ricalcolare chi2 su tutta la catena, stimo:
+    # D_bar approx chi2 medio attorno al minimo (varianza gaussiana: ~chi2_min + ndim)
+    # Ma e' meglio calcolarlo direttamente:
+    return {
+        'chi2_min': chi2_min,
+        'AIC': chi2_min + 2*k,
+        'BIC': chi2_min + k*np.log(N_data),
+    }
+
+
+# =====================================================================
+# RUN ALL CASES
+# =====================================================================
+results = {}
+
+# --- CASO A ---
+print("\n" + "="*70)
+print("CASO A: SNIa + CC")
+print("="*70)
+N_A = len(SN_Z) + len(CC)
+print(f"  N_data = {N_A}")
+
+# MAP fQ
+t0 = time()
+res = minimize(chi2_A_fQ, [0.15, 0.3, 67.5], method='Nelder-Mead',
+               options={'xatol': 1e-5, 'fatol': 1e-3, 'maxiter': 3000, 'adaptive': True})
+map_fQ = res.x
+print(f"  MAP f(Q): a={map_fQ[0]:+.4f} Om={map_fQ[1]:.4f} H0={map_fQ[2]:.2f}"
+      f"  chi2={res.fun:.2f}  ({time()-t0:.1f}s)")
+
+# MCMC fQ
+t0 = time()
+flat_A_fQ, chi2min_A_fQ, bth = mcmc_adaptive(
+    chi2_A_fQ, map_fQ, [(-0.5, 0.5), (0.2, 0.4), (60, 75)],
+    n_steps=2000, n_burn=500, n_chains=4)
+print(f"  MCMC f(Q) done {time()-t0:.1f}s, chi2_min={chi2min_A_fQ:.2f}")
+
+# MAP LCDM
+res = minimize(chi2_A_LCDM, [0.3, 67.5], method='Nelder-Mead',
+               options={'xatol': 1e-5, 'fatol': 1e-3, 'maxiter': 3000})
+map_L = res.x
+print(f"  MAP LCDM: Om={map_L[0]:.4f} H0={map_L[1]:.2f}  chi2={res.fun:.2f}")
+
+flat_A_L, chi2min_A_L, bth = mcmc_adaptive(
+    chi2_A_LCDM, map_L, [(0.2, 0.4), (60, 75)],
+    n_steps=2000, n_burn=500, n_chains=4)
+print(f"  MCMC LCDM done, chi2_min={chi2min_A_L:.2f}")
+
+results['A'] = {
+    'fQ': {'flat': flat_A_fQ, 'chi2_min': chi2min_A_fQ, 'k': 3, 'N': N_A},
+    'LCDM': {'flat': flat_A_L, 'chi2_min': chi2min_A_L, 'k': 2, 'N': N_A},
+    'labels': [r'$\alpha$', r'$\Omega_{m,0}$', r'$H_0$'],
+    'labels_L': [r'$\Omega_{m,0}$', r'$H_0$'],
+}
+
+# --- CASO B ---
+print("\n" + "="*70)
+print("CASO B: SNIa + CC + BAO")
+print("="*70)
+N_B = N_A + sum(len(b['kinds']) for b in BAO_BLOCKS)
+print(f"  N_data = {N_B}")
+
+t0 = time()
+res = minimize(chi2_B_fQ, [0.15, 0.3, 67.5, 147.0], method='Nelder-Mead',
+               options={'xatol': 1e-5, 'fatol': 1e-3, 'maxiter': 5000, 'adaptive': True})
+map_fQ = res.x
+print(f"  MAP f(Q): a={map_fQ[0]:+.4f} Om={map_fQ[1]:.4f} H0={map_fQ[2]:.2f}"
+      f"  rd={map_fQ[3]:.2f}  chi2={res.fun:.2f}  ({time()-t0:.1f}s)")
+
+flat_B_fQ, chi2min_B_fQ, _ = mcmc_adaptive(
+    chi2_B_fQ, map_fQ,
+    [(-0.5, 0.5), (0.2, 0.4), (60, 75), (130, 160)],
+    n_steps=2500, n_burn=600, n_chains=4)
+print(f"  MCMC f(Q) done {time()-t0:.1f}s, chi2_min={chi2min_B_fQ:.2f}")
+
+res = minimize(chi2_B_LCDM, [0.3, 67.5, 147.0], method='Nelder-Mead',
+               options={'xatol': 1e-5, 'fatol': 1e-3, 'maxiter': 5000})
+map_L = res.x
+print(f"  MAP LCDM: Om={map_L[0]:.4f} H0={map_L[1]:.2f} rd={map_L[2]:.2f}"
+      f"  chi2={res.fun:.2f}")
+
+flat_B_L, chi2min_B_L, _ = mcmc_adaptive(
+    chi2_B_LCDM, map_L,
+    [(0.2, 0.4), (60, 75), (130, 160)],
+    n_steps=2500, n_burn=600, n_chains=4)
+print(f"  MCMC LCDM done, chi2_min={chi2min_B_L:.2f}")
+
+results['B'] = {
+    'fQ': {'flat': flat_B_fQ, 'chi2_min': chi2min_B_fQ, 'k': 4, 'N': N_B},
+    'LCDM': {'flat': flat_B_L, 'chi2_min': chi2min_B_L, 'k': 3, 'N': N_B},
+    'labels': [r'$\alpha$', r'$\Omega_{m,0}$', r'$H_0$', r'$r_d$'],
+    'labels_L': [r'$\Omega_{m,0}$', r'$H_0$', r'$r_d$'],
+}
+
+# --- CASO C ---
+print("\n" + "="*70)
+print("CASO C: SNIa + CC + RSD")
+print("="*70)
+N_C = N_A + len(FS8)
+print(f"  N_data = {N_C}")
+
+t0 = time()
+res = minimize(chi2_C_fQ, [0.15, 0.3, 67.5, 0.80], method='Nelder-Mead',
+               options={'xatol': 1e-5, 'fatol': 1e-3, 'maxiter': 5000, 'adaptive': True})
+map_fQ = res.x
+print(f"  MAP f(Q): a={map_fQ[0]:+.4f} Om={map_fQ[1]:.4f} H0={map_fQ[2]:.2f}"
+      f"  s8={map_fQ[3]:.4f}  chi2={res.fun:.2f}  ({time()-t0:.1f}s)")
+
+flat_C_fQ, chi2min_C_fQ, _ = mcmc_adaptive(
+    chi2_C_fQ, map_fQ,
+    [(-0.5, 0.5), (0.2, 0.4), (60, 75), (0.6, 1.0)],
+    n_steps=2500, n_burn=600, n_chains=4)
+print(f"  MCMC f(Q) done {time()-t0:.1f}s, chi2_min={chi2min_C_fQ:.2f}")
+
+res = minimize(chi2_C_LCDM, [0.3, 67.5, 0.80], method='Nelder-Mead',
+               options={'xatol': 1e-5, 'fatol': 1e-3, 'maxiter': 5000})
+map_L = res.x
+print(f"  MAP LCDM: Om={map_L[0]:.4f} H0={map_L[1]:.2f} s8={map_L[2]:.4f}"
+      f"  chi2={res.fun:.2f}")
+
+flat_C_L, chi2min_C_L, _ = mcmc_adaptive(
+    chi2_C_LCDM, map_L,
+    [(0.2, 0.4), (60, 75), (0.6, 1.0)],
+    n_steps=2500, n_burn=600, n_chains=4)
+print(f"  MCMC LCDM done, chi2_min={chi2min_C_L:.2f}")
+
+results['C'] = {
+    'fQ': {'flat': flat_C_fQ, 'chi2_min': chi2min_C_fQ, 'k': 4, 'N': N_C},
+    'LCDM': {'flat': flat_C_L, 'chi2_min': chi2min_C_L, 'k': 3, 'N': N_C},
+    'labels': [r'$\alpha$', r'$\Omega_{m,0}$', r'$H_0$', r'$\sigma_8$'],
+    'labels_L': [r'$\Omega_{m,0}$', r'$H_0$', r'$\sigma_8$'],
+}
+
+
+# =====================================================================
+# TABELLA RISULTATI
+# =====================================================================
+def quantiles(flat):
+    q = np.quantile(flat, [0.16, 0.5, 0.84], axis=0)
+    return q[1], (q[2] - q[0])/2  # median, half-width
+
+
+print("\n" + "="*70)
+print("TABELLA RISULTATI")
+print("="*70)
+
+for case_name, case_data in results.items():
+    fQ = case_data['fQ']
+    L = case_data['LCDM']
+    labels = case_data['labels']
+    labels_L = case_data['labels_L']
+
+    print(f"\n-- CASO {case_name} ({['SNIa+CC','SNIa+CC+BAO','SNIa+CC+RSD'][ord(case_name)-ord('A')]}) --")
+
+    med_fQ, err_fQ = quantiles(fQ['flat'])
+    med_L, err_L = quantiles(L['flat'])
+
+    print("  f(Q):")
+    for i, lab in enumerate(labels):
+        print(f"    {lab:20s} = {med_fQ[i]:+8.4f} ± {err_fQ[i]:.4f}")
+    print(f"    chi2_min = {fQ['chi2_min']:.2f}  (dof = {fQ['N']-fQ['k']})")
+
+    print("  ΛCDM:")
+    for i, lab in enumerate(labels_L):
+        print(f"    {lab:20s} = {med_L[i]:+8.4f} ± {err_L[i]:.4f}")
+    print(f"    chi2_min = {L['chi2_min']:.2f}  (dof = {L['N']-L['k']})")
+
+    print(f"  Delta chi2_min (LCDM - fQ) = {L['chi2_min'] - fQ['chi2_min']:+.3f}")
+
+    # Information criteria
+    ic_fQ = info_criteria(fQ['flat'], fQ['chi2_min'], fQ['N'], fQ['k'])
+    ic_L = info_criteria(L['flat'], L['chi2_min'], L['N'], L['k'])
+    print(f"  Delta AIC  = AIC(fQ) - AIC(LCDM) = {ic_fQ['AIC'] - ic_L['AIC']:+.3f}")
+    print(f"  Delta BIC  = BIC(fQ) - BIC(LCDM) = {ic_fQ['BIC'] - ic_L['BIC']:+.3f}")
+    # DIC: per semplicita' lo calcolo come 2*<chi2> - chi2(<theta>)
+    # Ma <chi2> richiede di valutare chi2 su tutta la chain. Usiamo formula
+    # approssimata: DIC ≈ chi2_min + 2*ndim (valida per posteriori gaussiane)
+    D_fQ = fQ['chi2_min'] + 2*fQ['k']
+    D_L = L['chi2_min'] + 2*L['k']
+    print(f"  Delta DIC (gaussian approx) = {D_fQ - D_L:+.3f}")
+
+
+# =====================================================================
+# SALVATAGGIO RISULTATI
+# =====================================================================
+OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "plots")
+os.makedirs(OUT_DIR, exist_ok=True)
+np.savez(os.path.join(OUT_DIR, "16_saridakis_3MCMC.npz"),
+         flat_A_fQ=results['A']['fQ']['flat'],
+         flat_A_L=results['A']['LCDM']['flat'],
+         flat_B_fQ=results['B']['fQ']['flat'],
+         flat_B_L=results['B']['LCDM']['flat'],
+         flat_C_fQ=results['C']['fQ']['flat'],
+         flat_C_L=results['C']['LCDM']['flat'],
+         chi2_A_fQ=results['A']['fQ']['chi2_min'],
+         chi2_A_L=results['A']['LCDM']['chi2_min'],
+         chi2_B_fQ=results['B']['fQ']['chi2_min'],
+         chi2_B_L=results['B']['LCDM']['chi2_min'],
+         chi2_C_fQ=results['C']['fQ']['chi2_min'],
+         chi2_C_L=results['C']['LCDM']['chi2_min'])
+print("\nRisultati salvati in 16_saridakis_3MCMC.npz")
+
+
+# =====================================================================
+# FIGURA 1: contorni f(Q) per tutti 3 casi in (Om0, H0)
+# =====================================================================
+fig, ax = plt.subplots(figsize=(7, 6))
+
+colors = {'A': 'tab:blue', 'B': 'tab:orange', 'C': 'tab:green'}
+labels_plot = {'A': 'SNIa + CC', 'B': 'SNIa + CC + BAO', 'C': 'SNIa + CC + RSD'}
+
+for case in ['A', 'B', 'C']:
+    flat = results[case]['fQ']['flat']
+    # Om0 is col 1, H0 is col 2
+    om = flat[:, 1]; h0 = flat[:, 2]
+    # Histo 2D + contorni 1σ, 2σ
+    H, xe, ye = np.histogram2d(om, h0, bins=40)
+    xc = 0.5*(xe[:-1] + xe[1:]); yc = 0.5*(ye[:-1] + ye[1:])
+    Xg, Yg = np.meshgrid(xc, yc)
+    Hn = H.T/H.max()
+    levels = []
+    H_flat = np.sort(Hn.ravel())[::-1]
+    H_cumsum = np.cumsum(H_flat)/H_flat.sum()
+    for sig, prob in [(1, 0.68), (2, 0.95)]:
+        idx = np.searchsorted(H_cumsum, prob)
+        if idx < len(H_flat):
+            levels.append(H_flat[idx])
+    levels = sorted(levels)
+    ax.contour(Xg, Yg, Hn, levels=levels, colors=colors[case],
+               linewidths=[1.5, 2.0], alpha=0.85)
+    ax.plot([], [], color=colors[case], lw=2, label=labels_plot[case])
+
+ax.set_xlabel(r'$\Omega_{m,0}$', fontsize=12)
+ax.set_ylabel(r'$H_0$ [km/s/Mpc]', fontsize=12)
+ax.set_title(r'f(Q) model — 3 MCMC analyses', fontsize=12)
+ax.legend(fontsize=10, loc='upper right')
+ax.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig(os.path.join(OUT_DIR, "16_saridakis_fig1.png"), dpi=150, bbox_inches='tight')
+plt.close()
+print("Figura salvata: 16_saridakis_fig1.png")
+
+
+# =====================================================================
+# FIGURA 2: corner plot f(Q) vs LCDM per caso B (SNIa+CC+BAO)
+# =====================================================================
+# Usa getdist o corner se disponibile, altrimenti manual
+try:
+    import corner
+    # f(Q)
+    fig = corner.corner(results['B']['fQ']['flat'],
+                        labels=results['B']['labels'],
+                        color='crimson',
+                        show_titles=True, title_fmt='.4f',
+                        levels=[0.68, 0.95],
+                        hist_kwargs={'density': True},
+                        label_kwargs={'fontsize': 12})
+    # LCDM sovrapposto (senza alpha) -- difficile stackare dato parametri diversi
+    # Rinuncio al double-overlay e mostro solo f(Q), confronto separato LCDM
+    fig.suptitle('CASO B: SNIa+CC+BAO — f(Q) model', fontsize=12, y=1.005)
+    fig.savefig(os.path.join(OUT_DIR, "16_saridakis_fig2_fQ.png"), dpi=150, bbox_inches='tight')
+    plt.close(fig)
+
+    # LCDM separato
+    fig = corner.corner(results['B']['LCDM']['flat'],
+                        labels=results['B']['labels_L'],
+                        color='steelblue',
+                        show_titles=True, title_fmt='.4f',
+                        levels=[0.68, 0.95],
+                        hist_kwargs={'density': True},
+                        label_kwargs={'fontsize': 12})
+    fig.suptitle('CASO B: SNIa+CC+BAO — ΛCDM', fontsize=12, y=1.005)
+    fig.savefig(os.path.join(OUT_DIR, "16_saridakis_fig2_LCDM.png"), dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print("Corner plot salvati: 16_saridakis_fig2_fQ.png, 16_saridakis_fig2_LCDM.png")
+except ImportError:
+    print("(pacchetto 'corner' non installato - salto corner plot)")
+
+
+print("\n" + "="*70)
+print("=== FINE ANALISI ALLA SARIDAKIS ===")
+print("="*70)
