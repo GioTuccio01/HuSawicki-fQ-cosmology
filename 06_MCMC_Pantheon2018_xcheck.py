@@ -35,6 +35,9 @@ UNBINNED = True    # True = 1048 SNe; False = 40 bin
 print("Caricamento dati...")
 CC = load_CC()
 BAO_BLOCKS = load_BAO_DESI()
+for bl in BAO_BLOCKS:
+    if 'icov' not in bl and 'Cinv' in bl:
+        bl['icov'] = bl['Cinv']
 CMB_MEAN, CMB_ICOV = load_CMB_Planck()
 
 if UNBINNED:

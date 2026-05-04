@@ -34,9 +34,25 @@ print("="*65)
 
 CC = load_CC()
 BAO_BLOCKS = load_BAO_DESI()
-for bl in BAO_BLOCKS:
-    if 'icov' not in bl and 'Cinv' in bl:
-        bl['icov'] = bl['Cinv']
+# Patch difensiva: garantisce che ogni blocco BAO abbia 'icov'
+for _i, bl in enumerate(BAO_BLOCKS):
+    if 'icov' in bl:
+        continue
+    print(f"  [PATCH] blocco {_i} z={bl.get('z','?')} senza icov, "
+          f"chiavi presenti: {list(bl.keys())}")
+    if 'cov' in bl:
+        bl['icov'] = np.linalg.inv(np.atleast_2d(bl['cov']))
+    elif 'sig' in bl:
+        sigs = np.atleast_1d(bl['sig']).astype(float)
+        if len(sigs) == 1:
+            bl['icov'] = np.array([[1.0/sigs[0]**2]])
+        else:
+            bl['icov'] = np.linalg.inv(np.diag(sigs**2))
+    elif 'sigma' in bl:
+        s = float(np.atleast_1d(bl['sigma'])[0])
+        bl['icov'] = np.array([[1.0/s**2]])
+    else:
+        raise KeyError(f"Blocco BAO {_i} senza icov/cov/sig/sigma: {bl}")
 CMB_MEAN, CMB_ICOV = load_CMB_Planck()
 SN_Z, SN_MB, C_SN_inv, Ainv_MB, Binv_MB = load_PantheonPlus()
 N_SN = len(SN_Z)

@@ -20,6 +20,9 @@ print("CARICAMENTO DATI")
 print("="*65)
 CC = load_CC()
 BAO_BLOCKS = load_BAO_DESI()
+for bl in BAO_BLOCKS:
+    if 'icov' not in bl and 'Cinv' in bl:
+        bl['icov'] = bl['Cinv']
 CMB_MEAN, CMB_ICOV = load_CMB_Planck()
 SN_Z, SN_MB, C_SN_inv, Ainv_MB, Binv_MB = load_PantheonPlus()
 N_SN = len(SN_Z)

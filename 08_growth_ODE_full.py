@@ -178,3 +178,119 @@ fs8_o2 = compute_fsigma8_ODE(  alpha_DESY5, Om_map, s8_map, z_test)
 c2_g2 = np.sum(((FS8_V - fs8_g2)/FS8_S)**2)
 c2_o2 = np.sum(((FS8_V - fs8_o2)/FS8_S)**2)
 print(f"  alpha = {alpha_DESY5:+.2f}:  chi2(gamma) = {c2_g2:.2f},  chi2(ODE) = {c2_o2:.2f},  Delta = {c2_o2-c2_g2:+.4f}")
+
+
+# =====================================================================
+# FIGURA DI VALIDAZIONE: gamma=0.55 vs ODE piena
+# =====================================================================
+import matplotlib.pyplot as plt
+
+print("\n" + "="*65)
+print("Generazione figura di validazione...")
+print("="*65)
+
+z_plot = np.linspace(0.01, 2.0, 200)
+alpha_cases = [0.0, +0.135, +0.30]
+colors = ['#2c3e50', '#c0392b', '#2980b9']
+labels = [r'$\alpha=0$ ($\Lambda$CDM)',
+          r'$\alpha=+0.135$ (best-fit)',
+          r'$\alpha=+0.30$ (extreme)']
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 5.2))
+
+# ----- Pannello sinistro: fsigma8 ODE vs gamma vs dati -----
+ax = axes[0]
+for a, c, lab in zip(alpha_cases, colors, labels):
+    fs8_g = compute_fsigma8_gamma(a, Om_map, s8_map, z_plot)
+    fs8_o = compute_fsigma8_ODE(  a, Om_map, s8_map, z_plot)
+    ax.plot(z_plot, fs8_g, color=c, lw=2.0, ls='--', alpha=0.85,
+            label=f'{lab}, $\\gamma=0.55$')
+    ax.plot(z_plot, fs8_o, color=c, lw=1.4, ls='-', alpha=1.0)
+
+# Dati Gold-18
+ax.errorbar(FS8_Z, FS8_V, yerr=FS8_S, fmt='o', ms=5, color='black',
+            capsize=3, zorder=5, label='Gold-18 RSD data')
+
+ax.set_xlabel(r'$z$', fontsize=12)
+ax.set_ylabel(r'$f\sigma_{8}(z)$', fontsize=12)
+ax.set_title(r'$f\sigma_{8}(z)$: full ODE (solid) vs $\gamma=0.55$ (dashed)',
+             fontsize=11)
+ax.legend(fontsize=8.5, loc='lower left', ncol=1)
+ax.grid(alpha=0.3)
+ax.set_xlim(0, 2.0)
+ax.set_ylim(0.25, 0.55)
+
+# ----- Pannello destro: errore relativo gamma vs ODE -----
+ax = axes[1]
+for a, c, lab in zip(alpha_cases, colors, labels):
+    fs8_g = compute_fsigma8_gamma(a, Om_map, s8_map, z_plot)
+    fs8_o = compute_fsigma8_ODE(  a, Om_map, s8_map, z_plot)
+    rel_err = 100*(fs8_g - fs8_o)/fs8_o
+    ax.plot(z_plot, rel_err, color=c, lw=2.0, label=lab)
+
+ax.axhline(0, color='k', lw=0.7, alpha=0.5)
+ax.axhspan(-0.5, 0.5, color='gray', alpha=0.12, label=r'$\pm 0.5\%$ band')
+ax.axhspan(-1.0, 1.0, color='gray', alpha=0.06)
+
+ax.set_xlabel(r'$z$', fontsize=12)
+ax.set_ylabel(r'$100 \times (f\sigma_{8}^{\gamma} - f\sigma_{8}^{\rm ODE})/f\sigma_{8}^{\rm ODE}$  [\%]',
+              fontsize=11)
+ax.set_title(r'Relative error of the $\gamma=0.55$ approximation',
+             fontsize=11)
+ax.legend(fontsize=9, loc='upper right')
+ax.grid(alpha=0.3)
+ax.set_xlim(0, 2.0)
+ax.set_ylim(-1.5, 1.5)
+
+plt.tight_layout()
+out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "plots")
+os.makedirs(out_dir, exist_ok=True)
+out_path = os.path.join(out_dir, "08_validation_gamma.png")
+fig.savefig(out_path, dpi=150, bbox_inches='tight')
+plt.close(fig)
+print(f"  Salvato: {out_path}")
+
+# Salva anche le 2 figure separate per uso nel paper
+# Pannello A: fsigma8(z)
+fig_a, ax = plt.subplots(figsize=(7.5, 5.2))
+for a, c, lab in zip(alpha_cases, colors, labels):
+    fs8_g = compute_fsigma8_gamma(a, Om_map, s8_map, z_plot)
+    fs8_o = compute_fsigma8_ODE(  a, Om_map, s8_map, z_plot)
+    ax.plot(z_plot, fs8_g, color=c, lw=2.0, ls='--', alpha=0.85,
+            label=f'{lab}, $\\gamma=0.55$')
+    ax.plot(z_plot, fs8_o, color=c, lw=1.4, ls='-', alpha=1.0)
+ax.errorbar(FS8_Z, FS8_V, yerr=FS8_S, fmt='o', ms=5, color='black',
+            capsize=3, zorder=5, label='Gold-18 RSD data')
+ax.set_xlabel(r'$z$', fontsize=12)
+ax.set_ylabel(r'$f\sigma_{8}(z)$', fontsize=12)
+ax.set_title(r'$f\sigma_{8}(z)$: full ODE (solid) vs $\gamma=0.55$ (dashed)',
+             fontsize=11)
+ax.legend(fontsize=8.5, loc='lower left')
+ax.grid(alpha=0.3)
+ax.set_xlim(0, 2.0); ax.set_ylim(0.25, 0.55)
+plt.tight_layout()
+fig_a.savefig(os.path.join(out_dir, "08_validation_gamma_a_fs8.png"), dpi=150, bbox_inches='tight')
+plt.close(fig_a)
+
+# Pannello B: errore relativo
+fig_b, ax = plt.subplots(figsize=(7.5, 5.2))
+for a, c, lab in zip(alpha_cases, colors, labels):
+    fs8_g = compute_fsigma8_gamma(a, Om_map, s8_map, z_plot)
+    fs8_o = compute_fsigma8_ODE(  a, Om_map, s8_map, z_plot)
+    rel_err = 100*(fs8_g - fs8_o)/fs8_o
+    ax.plot(z_plot, rel_err, color=c, lw=2.0, label=lab)
+ax.axhline(0, color='k', lw=0.7, alpha=0.5)
+ax.axhspan(-0.5, 0.5, color='gray', alpha=0.12, label=r'$\pm 0.5\%$ band')
+ax.axhspan(-1.0, 1.0, color='gray', alpha=0.06)
+ax.set_xlabel(r'$z$', fontsize=12)
+ax.set_ylabel(r'$100 \times (f\sigma_{8}^{\gamma} - f\sigma_{8}^{\rm ODE})/f\sigma_{8}^{\rm ODE}$  [\%]',
+              fontsize=11)
+ax.set_title(r'Relative error of the $\gamma=0.55$ approximation',
+             fontsize=11)
+ax.legend(fontsize=9, loc='upper right')
+ax.grid(alpha=0.3)
+ax.set_xlim(0, 2.0); ax.set_ylim(-1.5, 1.5)
+plt.tight_layout()
+fig_b.savefig(os.path.join(out_dir, "08_validation_gamma_b_relerr.png"), dpi=150, bbox_inches='tight')
+plt.close(fig_b)
+print(f"  Salvati anche pannelli singoli: 08_validation_gamma_a_fs8.png, 08_validation_gamma_b_relerr.png")
