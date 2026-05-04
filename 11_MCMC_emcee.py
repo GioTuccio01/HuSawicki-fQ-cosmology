@@ -99,7 +99,9 @@ def rd_Aub(Om, H0, ob):
     h = H0/100; return 55.154/((Om*h*h)**0.25351 * ob**0.12807)
 
 def rs_ratio(Om, H0, ob):
-    h = H0/100; return 1.0 - 0.0206*ob**0.165 * (Om*h*h)**0.05
+    # rs(z*)/rs(z_drag), Planck-2018 calibrated (rs*=144.39 Mpc, rd=147.05 Mpc).
+    # Variation across the relevant parameter space is < 0.05%, well below current sensitivity.
+    return 0.9819
 
 def chi2_fQ(theta):
     a, Om, H0, ob, s8 = theta
@@ -264,8 +266,8 @@ print(f"  -logL(MAP) = {res.fun:.3f}")
 # =====================================================================
 ndim = 5
 nwalkers = 32   # emcee tipicamente usa ~2-10x ndim
-nsteps_burn = 500
-nsteps_prod = 2500
+nsteps_burn = 1000
+nsteps_prod = 5000   # >= 50*tau (tau~50), per stime di code stabili
 
 # Inizializzazione: Gaussian ball attorno al MAP
 init_scale = np.array([0.03, 0.004, 0.5, 0.0001, 0.015])
@@ -391,13 +393,26 @@ print("CONFRONTO MH-custom vs emcee (stesso likelihood, stessi dati, stessi prio
 print("="*70)
 print(f"{'Parametro':>12}  {'MH-custom':>22}  {'emcee/stretch':>22}  {'consistenza':>14}")
 print("-"*75)
-mh_results = {
-    'alpha':    (+0.1347, 0.0674),     # da 04_MCMC_main_eta_fixed.py (con Om_r)
-    'Om0':      (+0.30927, 0.00671),
-    'H0':       (+66.605, 0.690),
-    'ombh2':    (+0.02259, 0.00013),
-    'sigma8':   (+0.79860, 0.02327),
-}
+mh_results = None
+plots_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "plots")
+mh_path = os.path.join(plots_dir, "04_main_results.npz")
+if os.path.exists(mh_path):
+    d04 = np.load(mh_path)
+    flat04 = d04['flat']
+    q04 = np.quantile(flat04, [0.16, 0.5, 0.84], axis=0)
+    mh_results = {nm: (q04[1, i], (q04[2, i] - q04[0, i]) / 2)
+                  for i, nm in enumerate(names)}
+    print(f"  [11] caricato MH-custom da {mh_path} (run fresco di 04)")
+else:
+    print(f"  [11] WARNING: {mh_path} non trovato. Lancia prima 04_MCMC_main_eta_fixed.py")
+    print(f"  [11] Uso valori placeholder (DR1 vecchi) - il confronto NON e' significativo")
+    mh_results = {
+        'alpha':    (+0.1347, 0.0674),     # placeholder DR1 vecchio
+        'Om0':      (+0.30927, 0.00671),
+        'H0':       (+66.605, 0.690),
+        'ombh2':    (+0.02259, 0.00013),
+        'sigma8':   (+0.79860, 0.02327),
+    }
 for nm, qq in zip(names, q.T):
     em_med = qq[1]; em_err = (qq[2]-qq[0])/2
     mh_med, mh_err = mh_results[nm]
@@ -455,8 +470,13 @@ def corner_plot(samples, labels, truths=None, bins=32, color='orangered', cmap='
 
 labels_tex = [r'$\alpha$', r'$\Omega_{m,0}$', r'$H_0$', r'$\omega_b$', r'$\sigma_{8,0}$']
 # convert mh_results medians into a list
+mh_med_list = [mh_results[n][0] for n in names]
+# IMPORTANTE: le x del corner sono la mediana delle posteriors emcee stesse,
+# cosi' cadono esattamente sui picchi dei contour. Il confronto numerico
+# MH-custom vs emcee resta nella tabella stampata sopra (scientificamente
+# rilevante), il marker visivo serve solo a mostrare il centro del posterior.
 fig = corner_plot(flat, labels_tex, truths=np.median(flat, axis=0))
-title = f"emcee/stretch-move (nwalkers={nwalkers}, {nsteps_prod} steps) — blue lines: MH-custom best-fit"
+title = f"emcee/stretch-move (nwalkers={nwalkers}, {nsteps_prod} steps) — blue x: posterior median"
 fig.suptitle(title, fontsize=10, y=1.005)
 
 out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "plots")

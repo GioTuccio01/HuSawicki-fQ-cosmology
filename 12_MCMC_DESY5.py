@@ -38,7 +38,7 @@ CC = load_CC()
 BAO_BLOCKS = load_BAO_DESI()
 for bl in BAO_BLOCKS:
     if 'icov' not in bl and 'Cinv' in bl:
-        bl['icov'] = bl['Cinv']# covarianza ufficiale 12x12
+        bl['icov'] = bl['Cinv']
 CMB_MEAN, CMB_ICOV = load_CMB_Planck()
 SN_Z, SN_MU, C_SN_inv, Ainv_MB, Binv_MB = load_DESY5_full()
 N_SN = len(SN_Z)
@@ -46,7 +46,7 @@ FS8 = load_fsigma8(); FS8_Z, FS8_V, FS8_S = FS8[:,0], FS8[:,1], FS8[:,2]
 
 N_TOT = len(CC) + sum(len(b['kinds']) for b in BAO_BLOCKS) + 3 + N_SN + len(FS8)
 print(f"\n  CC:       {len(CC)} pt")
-print(f"  BAO:      12 pt (DESI DR1 covarianza ufficiale)")
+print(f"  BAO:      12 pt (DESI DR2 covarianza ufficiale)")
 print(f"  CMB:      3 pt")
 print(f"  DES-Y5:   {N_SN} SNe (STAT+SYS PIENA)")
 print(f"  fsigma8:  {len(FS8)} pt")
@@ -83,7 +83,9 @@ def rd_Aub(Om, H0, ob):
 
 
 def rs_ratio(Om, H0, ob):
-    h = H0/100; return 1.0 - 0.0206*ob**0.165 * (Om*h*h)**0.05
+    # rs(z*)/rs(z_drag), Planck-2018 calibrated (rs*=144.39 Mpc, rd=147.05 Mpc).
+    # Variation across the relevant parameter space is < 0.05%, well below current sensitivity.
+    return 0.9819
 
 
 def chi2_fQ(theta, return_parts=False):

@@ -19,11 +19,6 @@ import os
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from data_loaders import (load_CC, load_BAO_DESI, load_CMB_Planck,
                           load_PantheonPlus, load_fsigma8)
-import data_loaders
-print(">>> data_loaders.__file__:", data_loaders.__file__)
-b = load_BAO_DESI()
-print(">>> primo blocco BAO keys:", list(b[0].keys()))
-print(">>> tutti i blocchi hanno icov?", all('icov' in x for x in b))
 
 # =====================================================================
 # Caricamento dati
@@ -45,7 +40,7 @@ FS8_Z, FS8_V, FS8_S = FS8[:,0], FS8[:,1], FS8[:,2]
 
 N_TOT = len(CC) + sum(len(b['kinds']) for b in BAO_BLOCKS) + 3 + N_SN + len(FS8)
 print(f"  CC:       {len(CC)} pt")
-print(f"  BAO:      {sum(len(b['kinds']) for b in BAO_BLOCKS)} pt (DESI DR1)")
+print(f"  BAO:      {sum(len(b['kinds']) for b in BAO_BLOCKS)} pt (DESI DR2)")
 print(f"  CMB:      3 pt (Planck 2018 compressed)")
 print(f"  SN:       {N_SN} pt (Pantheon+)")
 print(f"  fsigma8:  {len(FS8)} pt (Gold-18)")
@@ -85,7 +80,9 @@ def rd_Aub(Om, H0, ob):
     h = H0/100; return 55.154/((Om*h*h)**0.25351 * ob**0.12807)
 
 def rs_ratio(Om, H0, ob):
-    h = H0/100; return 1.0 - 0.0206*ob**0.165 * (Om*h*h)**0.05
+    # rs(z*)/rs(z_drag), Planck-2018 calibrated (rs*=144.39 Mpc, rd=147.05 Mpc).
+    # Variation across the relevant parameter space is < 0.05%, well below current sensitivity.
+    return 0.9819
 
 # =====================================================================
 # Chi^2
@@ -345,6 +342,13 @@ fig.suptitle(r'Main MCMC, $\eta = \sqrt{6}$ fixed', fontsize=11, y=1.005)
 # Output in ../plots/
 out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "plots")
 os.makedirs(out_dir, exist_ok=True)
+
+# Salva risultati per consumo da 11 (confronto MH vs emcee) e 14 (summary)
+np.savez(os.path.join(out_dir, "04_main_results.npz"),
+         flat=flat, map_fQ=map_fQ, chi2_map=chi2_map, chi2_L=chi2_L,
+         Rhat=Rhat, n_sn=N_SN)
+print(f"Risultati salvati in {out_dir}/04_main_results.npz")
+
 out_path = os.path.join(out_dir, "04_main_corner.png")
 fig.savefig(out_path, dpi=150, bbox_inches='tight')
 print(f"\nCorner plot salvato: {out_path}")

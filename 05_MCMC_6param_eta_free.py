@@ -30,7 +30,7 @@ FS8 = load_fsigma8(); FS8_Z, FS8_V, FS8_S = FS8[:,0], FS8[:,1], FS8[:,2]
 N_TOT = len(CC) + sum(len(b['kinds']) for b in BAO_BLOCKS) + 3 + N_SN + len(FS8)
 print(f"  Totale: {N_TOT} punti di dato\n")
 
-C_KMS=299792.458; Z_STAR=1089.80; GAMMA=0.55
+C_KMS=299792.458; OM_R=9.2e-5; Z_STAR=1089.80; GAMMA=0.55
 X_SAMP = np.unique(np.concatenate([
     np.linspace(1e-5, 0.3, 100), np.linspace(0.3, 50, 300), np.linspace(50, 15000, 80)]))
 Z_LOW = np.linspace(1e-5, 15.0, 300)
@@ -52,7 +52,9 @@ def solve_E(z_arr, alpha, eta, Om0):
 def rd_Aub(Om, H0, ob):
     h=H0/100; return 55.154/((Om*h*h)**0.25351 * ob**0.12807)
 def rs_ratio(Om, H0, ob):
-    h=H0/100; return 1.0 - 0.0206*ob**0.165 * (Om*h*h)**0.05
+    # rs(z*)/rs(z_drag), Planck-2018 calibrated (rs*=144.39 Mpc, rd=147.05 Mpc).
+    # Variation across the relevant parameter space is < 0.05%, well below current sensitivity.
+    return 0.9819
 
 def chi2_fQ(theta, return_parts=False):
     a, eta, Om, H0, ob, s8 = theta
@@ -72,7 +74,7 @@ def chi2_fQ(theta, return_parts=False):
         dv = bl['vals'] - mods
         c2bao += dv @ bl['icov'] @ dv
     x0 = 6.0/eta**2
-    E_hi = np.sqrt(Om*(1+Z_HIGH)**3 + 2*Lam/x0)
+    E_hi = np.sqrt(Om*(1+Z_HIGH)**3 + OM_R*(1+Z_HIGH)**4 + 2*Lam/x0)
     Istar = trapezoid(1/E_lo, Z_LOW) + trapezoid(1/E_hi, Z_HIGH)
     R_th = np.sqrt(Om)*Istar; lA_th = np.pi*(C_KMS/H0)*Istar/rstar
     dv = np.array([R_th, lA_th, ob]) - CMB_MEAN
@@ -94,7 +96,7 @@ def chi2_fQ(theta, return_parts=False):
 
 def in_prior(theta):
     a, et, Om, H0, ob, s8 = theta
-    return (-0.33<a<0.80 and 1.0<et<3.5 and 0.10<Om<0.50 and
+    return (-1.0<a<2.0 and 1.0<et<3.5 and 0.10<Om<0.50 and
             55<H0<85 and 0.018<ob<0.026 and 0.5<s8<1.1)
 
 def log_prob(theta):

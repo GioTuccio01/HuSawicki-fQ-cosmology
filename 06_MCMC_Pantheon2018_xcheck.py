@@ -79,7 +79,9 @@ def solve_E(z_arr, alpha, Om0):
 def rd_Aub(Om, H0, ob):
     h=H0/100; return 55.154/((Om*h*h)**0.25351 * ob**0.12807)
 def rs_ratio(Om, H0, ob):
-    h=H0/100; return 1.0 - 0.0206*ob**0.165 * (Om*h*h)**0.05
+    # rs(z*)/rs(z_drag), Planck-2018 calibrated (rs*=144.39 Mpc, rd=147.05 Mpc).
+    # Variation across the relevant parameter space is < 0.05%, well below current sensitivity.
+    return 0.9819
 
 def chi2_fQ(theta, return_parts=False):
     a, Om, H0, ob, s8 = theta

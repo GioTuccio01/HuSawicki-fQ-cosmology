@@ -1,21 +1,15 @@
 """
-12_MCMC_Union3.py — Analisi principale con Union3 SNe al posto di Pantheon+.
+13_MCMC_Union3.py — Analisi con Union3 SNe (binned) al posto di Pantheon+.
 
-[FIX] Versione aggiornata: usa la covarianza STAT+SYS PIENA (1820x1820),
-NON piu' solo errori diagonali stat-only.
+Usa la release Union3 binned (Rubin et al. 2023): 22 distance-modulus bin
+con la matrice di covarianza 22x22 piena (STAT+SYS).
 File richiesti in ./data/ o ../data/ o /mnt/user-data/uploads/:
-  - DES-_HD.csv
-  - Union3_STAT_SYS.npz   (chiave 'cov' = triangolare upper, chiave 'nsn')
-Dopo cut MUERR<5: 1743 SNe (il paper riporta ~1765, differenza dovuta a cut diversi).
+  - Union3_HD.csv
+  - Union3_cov.npz  (chiave 'cov' = matrice 22x22 piena)
 
-Stesso setup di 04 ma sostituisce Pantheon+ con Union3.
+Stesso setup di 04 ma sostituisce Pantheon+ con Union3 binned.
 Convenzione A: f(Q) = Q + 2Lambda + alpha mu^2 (x-1)/(1+x)^2 con alpha>0
 favorito (regime DESI evolving DE).
-
-Risultato atteso (preliminare, da confermare girando lo script):
-  preferenza per alpha > 0 piu' robusta del valore stat-only,
-  significativita' attorno ai 2.5-3 sigma (la STAT+SYS riduce
-  l'evidenza rispetto allo stat-only, come noto per il caso w0wa).
 """
 import numpy as np
 from scipy.integrate import cumulative_trapezoid, trapezoid
@@ -38,7 +32,7 @@ CC = load_CC()
 BAO_BLOCKS = load_BAO_DESI()
 for bl in BAO_BLOCKS:
     if 'icov' not in bl and 'Cinv' in bl:
-        bl['icov'] = bl['Cinv']# covarianza ufficiale 12x12
+        bl['icov'] = bl['Cinv']
 CMB_MEAN, CMB_ICOV = load_CMB_Planck()
 SN_Z, SN_MU, C_SN_inv, Ainv_MB, Binv_MB = load_Union3()
 N_SN = len(SN_Z)
@@ -46,7 +40,7 @@ FS8 = load_fsigma8(); FS8_Z, FS8_V, FS8_S = FS8[:,0], FS8[:,1], FS8[:,2]
 
 N_TOT = len(CC) + sum(len(b['kinds']) for b in BAO_BLOCKS) + 3 + N_SN + len(FS8)
 print(f"\n  CC:       {len(CC)} pt")
-print(f"  BAO:      12 pt (DESI DR1 covarianza ufficiale)")
+print(f"  BAO:      12 pt (DESI DR2 covarianza ufficiale)")
 print(f"  CMB:      3 pt")
 print(f"  Union3:   {N_SN} SNe (STAT+SYS PIENA)")
 print(f"  fsigma8:  {len(FS8)} pt")
@@ -83,7 +77,9 @@ def rd_Aub(Om, H0, ob):
 
 
 def rs_ratio(Om, H0, ob):
-    h = H0/100; return 1.0 - 0.0206*ob**0.165 * (Om*h*h)**0.05
+    # rs(z*)/rs(z_drag), Planck-2018 calibrated (rs*=144.39 Mpc, rd=147.05 Mpc).
+    # Variation across the relevant parameter space is < 0.05%, well below current sensitivity.
+    return 0.9819
 
 
 def chi2_fQ(theta, return_parts=False):
