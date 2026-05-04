@@ -35,7 +35,10 @@ print("Convenzione A: alpha > 0 e' il regime DESI-favorito")
 print("="*65)
 
 CC = load_CC()
-BAO_BLOCKS = load_BAO_DESI()       # covarianza ufficiale 12x12
+BAO_BLOCKS = load_BAO_DESI()
+for bl in BAO_BLOCKS:
+    if 'icov' not in bl and 'Cinv' in bl:
+        bl['icov'] = bl['Cinv']# covarianza ufficiale 12x12
 CMB_MEAN, CMB_ICOV = load_CMB_Planck()
 SN_Z, SN_MU, C_SN_inv, Ainv_MB, Binv_MB = load_DESY5_full()
 N_SN = len(SN_Z)

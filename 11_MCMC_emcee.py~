@@ -455,7 +455,8 @@ def corner_plot(samples, labels, truths=None, bins=32, color='orangered', cmap='
 
 labels_tex = [r'$\alpha$', r'$\Omega_{m,0}$', r'$H_0$', r'$\omega_b$', r'$\sigma_{8,0}$']
 # convert mh_results medians into a list
-fig = corner_plot(flat, labels_tex, truths=np.median(flat, axis=0))
+mh_med_list = [mh_results[n][0] for n in names]
+fig = corner_plot(flat, labels_tex, truths=mh_med_list)
 title = f"emcee/stretch-move (nwalkers={nwalkers}, {nsteps_prod} steps) — blue lines: MH-custom best-fit"
 fig.suptitle(title, fontsize=10, y=1.005)
 
