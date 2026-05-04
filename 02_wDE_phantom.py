@@ -67,7 +67,7 @@ def Lam_from_alpha(alpha, x0=x0, OL0=OL0):
 # -----------------------------------------------------------------------------
 # Plot
 # -----------------------------------------------------------------------------
-x_vals = np.linspace(0.05, 15, 3000)  # da 0.05 (copre x_- ~0.17) a 15 (oltre x_+ ~5.83)
+x_vals = np.linspace(1.5, 15, 3000)  # da 0.05 (copre x_- ~0.17) a 15 (oltre x_+ ~5.83)
 
 alphas = [-0.3, -0.1, 0.0, 0.1, 0.3]
 colors = plt.cm.coolwarm(np.linspace(0.1, 0.9, len(alphas)))
