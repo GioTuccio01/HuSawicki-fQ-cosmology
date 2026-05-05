@@ -1,0 +1,29 @@
+# BAO DESI DR1 — 12 misure da 7 bin di redshift
+# Riferimento: DESI Collaboration, arXiv:2404.03002 (2024)
+# Tracciatori: BGS, LRG1/2/3+ELG1, ELG2, QSO, Ly-alpha forest
+#
+# Formato osservabili:
+#   DV/r_d  = (z * DM^2 * DH)^(1/3) / r_d  (isotropo)
+#   DM/r_d  = distanza comobile trasversa / r_d
+#   DH/r_d  = c/H(z)/r_d  (distanza Hubble)
+#
+# Correlazioni rho riportate solo per i bin con doppia misura (DM,DH).
+# Le correlazioni inter-tracciatore (tra bin diversi) sono trascurate (approssimazione
+# conservativa: la matrice di covarianza completa ha off-diagonal piccoli tra tracer).
+#
+# colonne: z_eff  tipo(DV/DM/DH)  valore  sigma  rho_DMDH
+# rho_DMDH = NaN per bin con singola misura (DV).
+#
+z_eff    tipo   valore   sigma    rho_DMDH
+0.295    DV      7.93    0.15     NaN
+0.510    DM     13.62    0.25    -0.445
+0.510    DH     20.98    0.61    -0.445
+0.706    DM     16.85    0.32    -0.420
+0.706    DH     20.08    0.60    -0.420
+0.930    DM     21.71    0.28    -0.389
+0.930    DH     17.88    0.35    -0.389
+1.317    DM     27.79    0.69    -0.475
+1.317    DH     13.82    0.42    -0.475
+1.491    DV     26.07    0.67     NaN
+2.330    DM     39.71    0.94    -0.474
+2.330    DH      8.52    0.17    -0.474

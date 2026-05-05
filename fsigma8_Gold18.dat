@@ -1,0 +1,39 @@
+# f*sigma_8(z) — compilation Gold-18-like
+# Misure di f*sigma_8 da redshift-space distortions (RSD) e analisi bispettro
+# Riferimenti principali:
+#   Nesseris, Pantazis, Perivolaropoulos  arXiv:1703.10538  (compilation originale)
+#   Aggiornata con misure eBOSS DR16 (Alam+21, Bautista+21, Neveux+20, Hou+21, du Mas+20, ecc.)
+#
+# 18 punti di redshift, assunti indipendenti (errori diagonali).
+# L'assunzione di indipendenza e' conservativa: alcune coppie di punti provengono
+# dallo stesso survey (BOSS, eBOSS) e sono in realta' debolmente correlate, ma
+# la correlazione e' tipicamente < 0.1 e viene trascurata in questo tipo di
+# compilation di cross-check.
+#
+# Survey inclusi:
+#   6dFGS (Beutler+12), 2dFGRS (Song&Percival09), SDSS-MGS (Howlett+15),
+#   GAMA (Blake+13), SDSS-LRG, BOSS LOWZ/CMASS/DR12,
+#   WiggleZ (Blake+12), VIPERS (Pezzotta+17),
+#   FastSound (Okumura+16), eBOSS QSO (Zhao+19), eBOSS ELG (de Mattia+21)
+#
+# colonne: z  fsigma8  sigma_fsigma8
+#
+# z       fsigma8   sigma_fsigma8
+0.020   0.428     0.047
+0.067   0.423     0.055
+0.150   0.490     0.145
+0.170   0.510     0.060
+0.180   0.360     0.090
+0.250   0.351     0.058
+0.320   0.384     0.095
+0.370   0.460     0.038
+0.380   0.440     0.060
+0.440   0.413     0.080
+0.570   0.453     0.022
+0.590   0.488     0.060
+0.600   0.390     0.063
+0.730   0.437     0.072
+0.860   0.400     0.110
+1.400   0.482     0.116
+1.480   0.462     0.045
+0.850   0.520     0.100

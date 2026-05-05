@@ -1,0 +1,26 @@
+# CMB distance priors — Planck 2018 compressed
+# Riferimento: Chen, Huang et al., arXiv:1902.03196 (2019)
+# Tre osservabili:
+#   R      = sqrt(Omega_m0) * H0 * D_M(z_star) / c    (shift parameter)
+#   ell_A  = pi * D_M(z_star) / r_s^star               (scala acustica angolare)
+#   omega_b = Omega_b * h^2                            (densita' baryonica fisica)
+# con z_star = 1089.80.
+#
+# valori centrali (media)
+R         ell_A         omega_b
+1.7502    301.471       0.02236
+
+# deviazioni standard
+sigma_R   sigma_ell_A   sigma_omega_b
+0.0046    0.090         0.00015
+
+# matrice di correlazione (3x3)
+# rho_{ij} = Cov_{ij} / (sigma_i * sigma_j)
+# riga 1 (R):        1.00  0.47 -0.66
+# riga 2 (ell_A):    0.47  1.00 -0.33
+# riga 3 (omega_b): -0.66 -0.33  1.00
+#
+correlation_matrix
+ 1.00   0.47  -0.66
+ 0.47   1.00  -0.33
+-0.66  -0.33   1.00
