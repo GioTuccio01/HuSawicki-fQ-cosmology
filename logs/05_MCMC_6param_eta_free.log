@@ -1,0 +1,43 @@
+=================================================================
+CARICAMENTO DATI
+=================================================================
+  [BAO] DESI DR2: loaded 7 blocks (12 measurements)
+        BGS        z=0.295  (DV)
+        LRG1       z=0.510  (DM,DH)
+        LRG2       z=0.706  (DM,DH)
+        LRG3+ELG1  z=0.934  (DM,DH)
+        ELG2       z=1.321  (DM,DH)
+        QSO        z=1.484  (DV)
+        Lya        z=2.330  (DM,DH)
+  Totale: 1645 punti di dato
+
+MAP a 6 parametri...
+  a=+0.9692 eta=1.582 Om=0.3130 H0=67.51 omb=0.02251 s8=0.7915
+  chi2 = 1429.23  (3.8s)
+
+MCMC multi-chain...
+  Chain 1/4... acc=0.28, 20.6s
+  Chain 2/4... acc=0.20, 21.0s
+  Chain 3/4... acc=0.25, 21.5s
+  Chain 4/4... acc=0.22, 22.0s
+
+R-hat:
+    alpha: 1.0068  OK
+      eta: 1.0575  ~
+      Om0: 1.0016  OK
+       H0: 1.0017  OK
+    ombh2: 1.0027  OK
+   sigma8: 1.0006  OK
+
+ATTESO: R-hat per alpha/eta >~ 1.05-1.15 per la degenerazione (alpha, eta).
+Questo motivo fisicamente il fissare eta=sqrt(6) nell'analisi principale.
+
+Marginali:
+    alpha =    +0.60138 +0.25729/-0.39240
+      eta =    +1.66869 +0.26936/-0.21545
+      Om0 =    +0.31063 +0.00608/-0.00606
+       H0 =   +67.76216 +0.66612/-0.65177
+    ombh2 =    +0.02252 +0.00012/-0.00012
+   sigma8 =    +0.79220 +0.02162/-0.02187
+
+Corner plot salvato in /Users/giovannituccio/Desktop/TESI_TG/scripts_aggiornati/../plots

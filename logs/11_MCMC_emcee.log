@@ -1,0 +1,68 @@
+Uso emcee ufficiale (version 3.1.6)
+
+=================================================================
+CARICAMENTO DATI (identico a 04_MCMC_main)
+=================================================================
+  [BAO] DESI DR2: loaded 7 blocks (12 measurements)
+        BGS        z=0.295  (DV)
+        LRG1       z=0.510  (DM,DH)
+        LRG2       z=0.706  (DM,DH)
+        LRG3+ELG1  z=0.934  (DM,DH)
+        ELG2       z=1.321  (DM,DH)
+        QSO        z=1.484  (DV)
+        Lya        z=2.330  (DM,DH)
+  Totale: 1645 punti di dato
+
+=================================================================
+MAP (Nelder-Mead) per inizializzare i walker vicino al massimo
+=================================================================
+  MAP: a=+0.1168 Om=0.3107 H0=67.67 omb=0.02254 s8=0.7959
+  -logL(MAP) = 716.132
+
+32 walkers inizializzati vicino al MAP
+
+=================================================================
+RUN SAMPLER: 1000 burn-in + 5000 production step
+=================================================================
+Burn-in...
+Production...
+
+Tempo totale: 270.2s
+Acceptance fraction: 0.551 (min 0.533, max 0.572)
+Autocorrelation time: [52.38737106 51.65169237 52.76785303 50.90287428 51.74022565]
+
+Sample effettivi post burn+thin: 4616
+
+=== Gelman-Rubin R-hat (walkers come catene) ===
+    alpha: R-hat = 1.0081  OK
+      Om0: R-hat = 1.0105  OK
+       H0: R-hat = 1.0093  OK
+    ombh2: R-hat = 1.0066  OK
+   sigma8: R-hat = 1.0134  OK
+
+=== Posteriors marginali (50% +/- 68% CI) da emcee/stretch-move ===
+    alpha =    +0.11572  +0.05922/-0.06310
+      Om0 =    +0.31067  +0.00571/-0.00573
+       H0 =   +67.66883  +0.64718/-0.59927
+    ombh2 =    +0.02254  +0.00012/-0.00012
+   sigma8 =    +0.79625  +0.02298/-0.02323
+  r_d     = 146.957  +0.224/-0.220
+
+alpha = +0.1157 +/- 0.0609  =>  1.90 sigma da 0
+frac(alpha<0) = 3.3%
+
+======================================================================
+CONFRONTO MH-custom vs emcee (stesso likelihood, stessi dati, stessi prior)
+======================================================================
+   Parametro               MH-custom           emcee/stretch     consistenza
+---------------------------------------------------------------------------
+  [11] caricato MH-custom da /Users/giovannituccio/Desktop/TESI_TG/scripts_aggiornati/../plots/04_main_results.npz (run fresco di 04)
+       alpha    +0.11868 +/- 0.05839    +0.11572 +/- 0.06116    0.04 sigma OK
+         Om0    +0.31091 +/- 0.00544    +0.31067 +/- 0.00572    0.03 sigma OK
+          H0   +67.64781 +/- 0.58799   +67.66883 +/- 0.62322    0.02 sigma OK
+       ombh2    +0.02254 +/- 0.00012    +0.02254 +/- 0.00012    0.00 sigma OK
+      sigma8    +0.79560 +/- 0.02309    +0.79625 +/- 0.02310    0.02 sigma OK
+
+Corner plot salvato: /Users/giovannituccio/Desktop/TESI_TG/scripts_aggiornati/../plots/11_emcee_corner.png
+
+=== FINE ANALISI emcee/stretch-move ===

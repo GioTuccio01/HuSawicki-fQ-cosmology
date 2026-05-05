@@ -1,0 +1,62 @@
+=================================================================
+CARICAMENTO DATI
+=================================================================
+  [BAO] DESI DR2: loaded 7 blocks (12 measurements)
+        BGS        z=0.295  (DV)
+        LRG1       z=0.510  (DM,DH)
+        LRG2       z=0.706  (DM,DH)
+        LRG3+ELG1  z=0.934  (DM,DH)
+        ELG2       z=1.321  (DM,DH)
+        QSO        z=1.484  (DV)
+        Lya        z=2.330  (DM,DH)
+  CC:       32 pt
+  BAO:      12 pt (DESI DR2)
+  CMB:      3 pt (Planck 2018 compressed)
+  SN:       1580 pt (Pantheon+)
+  fsigma8:  18 pt (Gold-18)
+  TOTALE:   1645 punti di dato
+
+=================================================================
+MAP f(Q)  [eta = 2.4495 fissato]
+=================================================================
+  a=+0.1168  Om=0.3107  H0=67.67  omb=0.02254  s8=0.7959
+  chi2=1432.26 [CC=14.7 BAO=11.0 CMB=3.34 SN=1389.9 fs8=13.4]  (1.7s)
+
+MAP LCDM
+  Om=0.3026  H0=68.66  omb=0.02251  s8=0.7908
+  chi2=1436.62  Delta(LCDM-fQ) = +4.36
+
+=================================================================
+MULTI-CHAIN MCMC (4 catene, 5 parametri)
+=================================================================
+  Chain 1/4... acc=0.33, 18.3s
+  Chain 2/4... acc=0.37, 17.1s
+  Chain 3/4... acc=0.40, 17.2s
+  Chain 4/4... acc=0.36, 16.6s
+Tempo totale MCMC: 69.1s
+
+=== Gelman-Rubin R-hat ===
+    alpha: R-hat = 1.0010  OK
+      Om0: R-hat = 1.0022  OK
+       H0: R-hat = 1.0015  OK
+    ombh2: R-hat = 1.0033  OK
+   sigma8: R-hat = 1.0012  OK
+
+=== Marginali (50% +/- 68% CI) ===
+    alpha =    +0.11868  +0.05833/-0.05846
+      Om0 =    +0.31091  +0.00556/-0.00533
+       H0 =   +67.64781  +0.58573/-0.59026
+    ombh2 =    +0.02254  +0.00012/-0.00012
+   sigma8 =    +0.79560  +0.02288/-0.02329
+  r_d     = 146.952  +0.225/-0.216
+
+alpha = +0.1187 +/- 0.0586  =>  2.03 sigma da 0
+frac(alpha<0) = 2.7%
+
+=== Model comparison (LCDM vs f(Q)) ===
+  Delta chi2 = +4.36
+  Delta AIC  = +2.36  favorisce fQ
+  Delta BIC  = -3.05  favorisce LCDM
+Risultati salvati in /Users/giovannituccio/Desktop/TESI_TG/scripts_aggiornati/../plots/04_main_results.npz
+
+Corner plot salvato: /Users/giovannituccio/Desktop/TESI_TG/scripts_aggiornati/../plots/04_main_corner.png

@@ -1,0 +1,65 @@
+=================================================================
+ANALISI f(Q) con DES-Y5 SNe (STAT+SYS, covarianza piena)
+Convenzione A: alpha > 0 e' il regime DESI-favorito
+=================================================================
+  [BAO] DESI DR2: loaded 7 blocks (12 measurements)
+        BGS        z=0.295  (DV)
+        LRG1       z=0.510  (DM,DH)
+        LRG2       z=0.706  (DM,DH)
+        LRG3+ELG1  z=0.934  (DM,DH)
+        ELG2       z=1.321  (DM,DH)
+        QSO        z=1.484  (DV)
+        Lya        z=2.330  (DM,DH)
+  load_DESY5_full v2 (FIX: cov.npz contiene C^-1)
+    csv: ../data/DES-Dovekie_HD.csv
+    cov: ../data/DESY5_STAT_SYS.npz
+    1820 SNe usate (su 1820 totali, mask: zHD>0)
+    z range: [0.0251, 1.1442]
+    C^-1 simmetrica? True, min eigenvalue: 4.5655e-06
+    Ainv_MB = 43938.3371  (per marginalizzazione M)
+
+  CC:       32 pt
+  BAO:      12 pt (DESI DR2 covarianza ufficiale)
+  CMB:      3 pt
+  DES-Y5:   1820 SNe (STAT+SYS PIENA)
+  fsigma8:  18 pt
+  TOTALE:   1885
+
+MAP f(Q)...
+  a=+0.1136 Om=0.3104 H0=67.70 omb=0.02254 s8=0.7958
+  chi2=1675.16 [CC=14.7 BAO=10.9 CMB=3.32 SN=1632.8 fs8=13.4]
+
+MAP LCDM...
+  Om=0.3030 H0=68.63 omb=0.02251 s8=0.7906
+  chi2_LCDM=1680.08  Delta(LCDM-fQ)=+4.91
+
+MCMC (4 catene)...
+  Chain 1/4... acc=0.40, 37s
+  Chain 2/4... acc=0.34, 34s
+  Chain 3/4... acc=0.34, 34s
+  Chain 4/4... acc=0.31, 34s
+
+R-hat:
+    alpha: 1.0005 OK
+      Om0: 1.0003 OK
+       H0: 1.0003 OK
+    ombh2: 1.0015 OK
+   sigma8: 1.0027 OK
+
+Marginali:
+    alpha =    +0.11450  +0.05247/-0.05475
+      Om0 =    +0.31073  +0.00510/-0.00516
+       H0 =   +67.68900  +0.55412/-0.54433
+    ombh2 =    +0.02255  +0.00012/-0.00012
+   sigma8 =    +0.79494  +0.02252/-0.02293
+
+alpha = +0.1145 +/- 0.0538 => 2.13 sigma
+frac(alpha>0) = 97.9%
+
+Delta chi2 (LCDM-fQ) = +4.91
+Delta AIC  = +2.91
+Delta BIC  = -2.63
+
+Risultati salvati in ../plots/12_DESY5_results.npz
+  (incl. n_sn=1820, da usare nel summary)
+Corner plot salvato: /Users/giovannituccio/Desktop/TESI_TG/scripts_aggiornati/../plots/12_DESY5_corner.png

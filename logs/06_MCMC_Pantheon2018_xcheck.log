@@ -1,0 +1,51 @@
+Caricamento dati...
+  [BAO] DESI DR2: loaded 7 blocks (12 measurements)
+        BGS        z=0.295  (DV)
+        LRG1       z=0.510  (DM,DH)
+        LRG2       z=0.706  (DM,DH)
+        LRG3+ELG1  z=0.934  (DM,DH)
+        ELG2       z=1.321  (DM,DH)
+        QSO        z=1.484  (DV)
+        Lya        z=2.330  (DM,DH)
+  [Pantheon 2018 UNBINNED: 1048 SNe individuali]
+
+ERRORE: File /Users/giovannituccio/Desktop/TESI_TG/scripts_aggiornati/../data/sys_full_long.txt non trovato. Scaricalo da:
+  https://github.com/dscolnic/Pantheon/raw/master/sys_full_long.txt
+e salvalo in /Users/giovannituccio/Desktop/TESI_TG/scripts_aggiornati/../data/
+
+Fallback a binned (40 pt)
+
+  32 CC, 12 BAO, 3 CMB, 40 SN (binned), 18 fsigma8 = 105 pt
+
+MAP f(Q)...
+  a=+0.0144 Om=0.3022 H0=68.68 omb=0.02252 s8=0.7922  chi2=80.89
+
+MAP LCDM: chi2=81.67  Delta(LCDM-fQ)=+0.79
+
+MCMC...
+  Chain 1/4... acc=0.34, 4.3s
+  Chain 2/4... acc=0.42, 4.0s
+  Chain 3/4... acc=0.42, 4.0s
+  Chain 4/4... acc=0.41, 4.1s
+
+R-hat:
+    alpha: 1.0014 OK
+      Om0: 1.0008 OK
+       H0: 1.0011 OK
+    ombh2: 1.0017 OK
+   sigma8: 1.0026 OK
+
+Marginali:
+    alpha =    +0.01751 +0.06587/-0.06700
+      Om0 =    +0.30261 +0.00593/-0.00574
+       H0 =   +68.63899 +0.66543/-0.67039
+    ombh2 =    +0.02251 +0.00013/-0.00012
+   sigma8 =    +0.79320 +0.02298/-0.02294
+
+alpha = +0.0175 +/- 0.0684  =>  0.26 sigma da 0
+frac(alpha<0) = 39.5%
+
+Delta AIC (LCDM-fQ) = -1.21
+Delta BIC (LCDM-fQ) = -3.87
+
+Corner salvato in /Users/giovannituccio/Desktop/TESI_TG/scripts_aggiornati/../plots

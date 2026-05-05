@@ -1,0 +1,63 @@
+=================================================================
+ANALISI f(Q) con Union3 SNe (STAT+SYS, covarianza piena)
+Convenzione A: alpha > 0 e' il regime DESI-favorito
+=================================================================
+  [BAO] DESI DR2: loaded 7 blocks (12 measurements)
+        BGS        z=0.295  (DV)
+        LRG1       z=0.510  (DM,DH)
+        LRG2       z=0.706  (DM,DH)
+        LRG3+ELG1  z=0.934  (DM,DH)
+        ELG2       z=1.321  (DM,DH)
+        QSO        z=1.484  (DV)
+        Lya        z=2.330  (DM,DH)
+  load_Union3: 22 bin
+    z range  : [0.0500, 2.2623]
+    mu range : [36.63, 46.00]
+    sqrt(diag(C)) typical: 0.0947 mag
+    Ainv_MB = 127.4137
+
+  CC:       32 pt
+  BAO:      12 pt (DESI DR2 covarianza ufficiale)
+  CMB:      3 pt
+  Union3:   22 SNe (STAT+SYS PIENA)
+  fsigma8:  18 pt
+  TOTALE:   87
+
+MAP f(Q)...
+  a=+0.1416 Om=0.3129 H0=67.42 omb=0.02255 s8=0.7967
+  chi2=66.82 [CC=14.7 BAO=11.3 CMB=3.54 SN=24.0 fs8=13.3]
+
+MAP LCDM...
+  Om=0.3022 H0=68.68 omb=0.02252 s8=0.7910
+  chi2_LCDM=70.86  Delta(LCDM-fQ)=+4.04
+
+MCMC (4 catene)...
+  Chain 1/4... acc=0.38, 4s
+  Chain 2/4... acc=0.39, 4s
+  Chain 3/4... acc=0.37, 4s
+  Chain 4/4... acc=0.40, 4s
+
+R-hat:
+    alpha: 1.0037 OK
+      Om0: 1.0023 OK
+       H0: 1.0025 OK
+    ombh2: 1.0015 OK
+   sigma8: 1.0019 OK
+
+Marginali:
+    alpha =    +0.14133  +0.07984/-0.07652
+      Om0 =    +0.31294  +0.00745/-0.00699
+       H0 =   +67.41507  +0.76777/-0.81365
+    ombh2 =    +0.02255  +0.00012/-0.00013
+   sigma8 =    +0.79752  +0.02381/-0.02366
+
+alpha = +0.1413 +/- 0.0787 => 1.80 sigma
+frac(alpha>0) = 96.1%
+
+Delta chi2 (LCDM-fQ) = +4.04
+Delta AIC  = +2.04
+Delta BIC  = -0.43
+
+Risultati salvati in ../plots/13_Union3_results.npz
+  (incl. n_sn=22, da usare nel summary)
+Corner plot salvato: /Users/giovannituccio/Desktop/TESI_TG/scripts_aggiornati/../plots/13_Union3_corner.png
